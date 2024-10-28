@@ -5,17 +5,21 @@ DIR_PATH=`date "+%Y%m%d-%H"`
 
 if [ ! -d "${DIR_PATH}" ]
 then
-	mkdir ${DIR_PATH}
+                mkdir ${DIR_PATH}
 fi
 
 # attach set
 #custom_tid=$(pidof xxx)
-custom_pid=101
-proc_name=$(ps -p $custom_pid | tail -n 1 | awk '{print $4}')
+custom_pid=$1
+proc_name=""
+if [ -f  /proc/$custom_pid/comm ]
+then
+        proc_name=$(basename $(cat /proc/$custom_pid/comm))
+fi
 
-echo "$DIR_PATH/${proc_name}.perf.data"
 
 if [ ! -z "${proc_name}" ]
 then
-	perf record --call-graph dwarf -o $DIR_PATH/${proc_name}.perf.data -p ${custom_pid} sleep 30
+                echo "[INFO] $DIR_PATH/${proc_name}.perf.data"
+                perf record --call-graph dwarf -o $DIR_PATH/${proc_name}.perf.data -t ${custom_pid} sleep 30
 fi
