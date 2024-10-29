@@ -15,3 +15,7 @@ cmd_perf.sh DD_DIRECT_WR_1MBS_1024CNT
 gen_html.sh <生成perf的目录，注意perf文件的后缀是.perf.data>
 
 gen_html.sh 20241026-11
+
+## perf-tools
+
+https://github.com/brendangregg/perf-tools
