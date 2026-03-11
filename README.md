@@ -19,3 +19,8 @@ gen_html.sh 20241026-11
 ## perf-tools
 
 https://github.com/brendangregg/perf-tools
+
+
+## ftrace-tools
+
+./func_graph_ftrace.sh '__sys_connect' /usr/bin/curl http://www.google.com
