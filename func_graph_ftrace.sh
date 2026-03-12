@@ -1,6 +1,6 @@
 #!/bin/bash
 
-tracefs=`cat /proc/mounts | awk '/tracefs/ { print $2 }' | head -1`
+TRACEFS=`cat /proc/mounts | awk '/tracefs/ { print $2 }' | head -1`
 fail() {
 	text=$1;
 
@@ -8,61 +8,59 @@ fail() {
 	exit -1;
 }
 
+CPID_FILE=/tmp/.cmd_pidf
+TRACE_FILE=/tmp/.trace_`date +"%Y%m%d%H%M%S"`
+
 cleanup() {
 	echo "== cleanup environment =="
 
-	if [ -n "$PIPE_PID" ]; then
-		kill -9 "$PIPE_PID" 2>/dev/null
-        	wait "$PIPE_PID" 2>/dev/null
-    	fi
 	if [ -n "$CMD_PID" ]; then
-        	kill -9 "$CMD_PID" 2>/dev/null
-        	wait "$CMD_PID" 2>/dev/null
-    	fi
+		kill -9 "$CMD_PID" 2>/dev/null
+		wait "$CMD_PID" 2>/dev/null
+	fi
+
+	cat $TRACEFS/trace > $TRACE_FILE
 	
-	echo nop > "$tracefs/current_tracer"
-        echo > "$tracefs/set_ftrace_filter"
-   	echo > "$tracefs/set_ftrace_pid"
-        echo > "$tracefs/set_event_pid"
-        echo 0 > "$tracefs/options/func_stack_trace"
-        echo > "$tracefs/trace"
-	echo 0 > "$tracefs/tracing_on"
-	echo "== success, cleanup end =="
+	echo nop > $TRACEFS/current_tracer
+	echo > $TRACEFS/set_ftrace_filter
+   	echo > $TRACEFS/set_ftrace_pid
+	echo > $TRACEFS/set_event_pid
+	echo > $TRACEFS/trace
+	echo 0 > $TRACEFS/options/func_stack_trace
+
+	echo 0 > $TRACEFS/tracing_on
+
+	echo "== success, cleanup end, trace output:$TRACE_FILE =="
 }
 
 trap cleanup INT TERM EXIT
 
 
-if [ -z "$tracefs" ]; then
+if [ -z "$TRACEFS" ]; then
 	mount -t tracefs nodev /sys/kernel/tracing || fail "Failed to mount tracefs"
 	tracefs="/sys/kernel/tracing"
 fi
 
-cd $tracefs || fail "Changing to tracefs directory ($tracefs)";
+cd $TRACEFS || fail "Changing to tracefs directory ($TRACEFS)";
 
-echo function_graph > current_tracer
-echo 1 > options/func_stack_trace # 跟踪函数调用栈
-echo $1 > set_graph_function
-echo > set_ftrace_filter
-echo 0 > options/funcgraph-irqs
-
-cat "$tracefs/trace_pipe" &
-PIPE_PID=$!
+echo function_graph > $TRACEFS/current_tracer
+echo 1 > $TRACEFS/options/func_stack_trace # 跟踪函数调用栈
+echo $1 > $TRACEFS/set_graph_function
+echo 0 > $TRACEFS/options/funcgraph-irqs
 
 FILTER="$1"
 shift
 CMD_ARGS=("$@")
 
 (
-	echo $BASHPID > /tmp/.cmd_pidf
-	echo $BASHPID > set_ftrace_pid
-	echo $BASHPID > set_event_pid
+	echo $BASHPID > $CPID_FILE
+	echo $BASHPID > $TRACEFS/set_ftrace_pid
 	echo 1 > tracing_on
 	exec "${CMD_ARGS[@]}"
 ) &
 
 sleep 1
-CMD_PID=$(cat /tmp/.cmd_pidf)
+CMD_PID=$(cat $CPID_FILE)
 
 wait "$CMD_PID"
 
