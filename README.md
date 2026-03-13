@@ -91,3 +91,18 @@ stack：开启栈追踪
 如果你想知道某个内核函数是谁调用的：
 
 trace-cmd stack: 开启内核栈记录，通常配合 record -p function 使用。
+
+
+# trace-cmd生成火焰图
+
+```bash
+./fg2flame.sh record -d 10 -o out.svg
+
+./fg2flame.sh record -d 5 -p 1234 -f "vfs_read vfs_write" -o out.svg
+
+./fg2flame.sh record -d 5 -- myprogram --args
+
+./fg2flame.sh convert -i trace.dat -o out.svg
+
+./fg2flame.sh report  -i trace.dat > report.txt
+```
